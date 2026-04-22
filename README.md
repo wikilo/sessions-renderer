@@ -6,7 +6,7 @@ This will generate a `lib/data.js`
 
 ---
 
-For UI Copy local `sessions.html` full path in your browser.
+For UI Copy local `index.html` full path in your browser.
 
 
 ---
