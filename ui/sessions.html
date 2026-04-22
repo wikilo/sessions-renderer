@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="en" class="h-full">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Sessions Browser</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script>
+            tailwind.config = {
+                theme: {
+                    extend: {
+                        colors: {
+                            bg: "#0e0e0e",
+                            surface: "#161616",
+                            card: "#1c1c1c",
+                            elevated: "#232323",
+                            fg: "#e8e4de",
+                            muted: "#6b6560",
+                            accent: "#e07a5f",
+                            "accent-dim": "rgba(224,122,95,0.12)",
+                            "accent-hover": "#f09a80",
+                            border: "#2a2725",
+                            "border-light": "#363230",
+                        },
+                        fontFamily: {
+                            sans: ['"DM Sans"', "sans-serif"],
+                            mono: ['"JetBrains Mono"', "monospace"],
+                        },
+                    },
+                },
+            };
+        </script>
+        <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+        <link
+            href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,200;9..40,400;9..40,500;9..40,700;9..40,900&family=JetBrains+Mono:wght@400;500&display=swap"
+            rel="stylesheet"
+        />
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+        />
+        <style>
+            *,
+            *::before,
+            *::after {
+                box-sizing: border-box;
+            }
+            body {
+                background: #0e0e0e;
+                color: #e8e4de;
+            }
+            ::-webkit-scrollbar {
+                width: 6px;
+                height: 6px;
+            }
+            ::-webkit-scrollbar-track {
+                background: transparent;
+            }
+            ::-webkit-scrollbar-thumb {
+                background: #2a2725;
+                border-radius: 3px;
+            }
+            ::-webkit-scrollbar-thumb:hover {
+                background: #363230;
+            }
+
+            /* Subtle background texture */
+            body::before {
+                content: "";
+                position: fixed;
+                inset: 0;
+                background:
+                    radial-gradient(
+                        ellipse at 20% 0%,
+                        rgba(224, 122, 95, 0.04) 0%,
+                        transparent 60%
+                    ),
+                    radial-gradient(
+                        ellipse at 80% 100%,
+                        rgba(224, 122, 95, 0.03) 0%,
+                        transparent 50%
+                    );
+                pointer-events: none;
+                z-index: 0;
+            }
+
+            /* Focus styles */
+            *:focus-visible {
+                outline: 2px solid #e07a5f;
+                outline-offset: 2px;
+                border-radius: 4px;
+            }
+
+            /* Markdown rendered content styles */
+            .md-content h1 {
+                font-size: 1.5rem;
+                font-weight: 700;
+                margin: 1.5rem 0 0.75rem;
+                color: #e8e4de;
+            }
+            .md-content h2 {
+                font-size: 1.2rem;
+                font-weight: 700;
+                margin: 1.25rem 0 0.5rem;
+                color: #e8e4de;
+            }
+            .md-content h3 {
+                font-size: 1.05rem;
+                font-weight: 600;
+                margin: 1rem 0 0.4rem;
+                color: #d4cfc8;
+            }
+            .md-content p {
+                margin: 0.4rem 0;
+                line-height: 1.7;
+                color: #b0aaa2;
+            }
+            .md-content ul,
+            .md-content ol {
+                margin: 0.4rem 0;
+                padding-left: 1.5rem;
+                color: #b0aaa2;
+            }
+            .md-content li {
+                margin: 0.2rem 0;
+                line-height: 1.6;
+            }
+            .md-content a {
+                color: #e07a5f;
+                text-decoration: none;
+                border-bottom: 1px solid rgba(224, 122, 95, 0.3);
+                transition: border-color 0.15s;
+            }
+            .md-content a:hover {
+                border-color: #e07a5f;
+            }
+            .md-content code {
+                font-family: "JetBrains Mono", monospace;
+                font-size: 0.85em;
+                background: #1c1c1c;
+                padding: 0.15em 0.4em;
+                border-radius: 4px;
+                color: #e07a5f;
+            }
+            .md-content pre {
+                background: #141414;
+                border: 1px solid #2a2725;
+                border-radius: 8px;
+                padding: 1rem;
+                overflow-x: auto;
+                margin: 0.75rem 0;
+            }
+            .md-content pre code {
+                background: none;
+                padding: 0;
+                color: #b0aaa2;
+            }
+            .md-content strong {
+                color: #e8e4de;
+                font-weight: 600;
+            }
+            .md-content hr {
+                border: none;
+                border-top: 1px solid #2a2725;
+                margin: 1.5rem 0;
+            }
+            .md-content blockquote {
+                border-left: 3px solid #e07a5f;
+                padding-left: 1rem;
+                margin: 0.75rem 0;
+                color: #8a8480;
+                font-style: italic;
+            }
+
+            /* Search highlight */
+            mark {
+                background: rgba(224, 122, 95, 0.3);
+                color: #e8e4de;
+                border-radius: 2px;
+                padding: 0 2px;
+            }
+
+            /* Line numbers */
+            .line-num {
+                color: #3a3632;
+                user-select: none;
+                text-align: right;
+                min-width: 2.5rem;
+                padding-right: 1rem;
+            }
+
+            /* Animations */
+            @keyframes fadeSlideIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(8px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+            @keyframes modalIn {
+                from {
+                    opacity: 0;
+                    transform: scale(0.96) translateY(-12px);
+                }
+                to {
+                    opacity: 1;
+                    transform: scale(1) translateY(0);
+                }
+            }
+            @keyframes overlayIn {
+                from {
+                    opacity: 0;
+                }
+                to {
+                    opacity: 1;
+                }
+            }
+            .animate-fade-slide {
+                animation: fadeSlideIn 0.25s ease-out;
+            }
+            .animate-modal {
+                animation: modalIn 0.2s ease-out;
+            }
+            .animate-overlay {
+                animation: overlayIn 0.15s ease-out;
+            }
+
+            /* Sidebar session item */
+            .session-item {
+                transition:
+                    background 0.15s,
+                    border-color 0.15s;
+                cursor: pointer;
+            }
+            .session-item:hover {
+                background: #1c1c1c;
+            }
+            .session-item.active {
+                background: rgba(224, 122, 95, 0.08);
+                border-color: rgba(224, 122, 95, 0.25);
+            }
+
+            /* Tab button */
+            .tab-btn {
+                transition:
+                    color 0.15s,
+                    border-color 0.15s;
+                border-bottom: 2px solid transparent;
+            }
+            .tab-btn:hover {
+                color: #e8e4de;
+            }
+            .tab-btn.active {
+                color: #e07a5f;
+                border-bottom-color: #e07a5f;
+            }
+
+            /* Resource card */
+            .resource-item {
+                transition:
+                    background 0.15s,
+                    transform 0.15s;
+            }
+            .resource-item:hover {
+                background: #232323;
+                transform: translateX(2px);
+            }
+
+            /* Solution row */
+            .solution-row {
+                transition: background 0.15s;
+            }
+            .solution-row:hover {
+                background: #232323;
+            }
+            .solution-row.selected {
+                background: rgba(224, 122, 95, 0.08);
+            }
+
+            /* Mobile sidebar */
+            @media (max-width: 768px) {
+                #sidebar {
+                    position: fixed;
+                    left: 0;
+                    top: 0;
+                    bottom: 0;
+                    z-index: 40;
+                    transform: translateX(-100%);
+                    transition: transform 0.25s ease;
+                }
+                #sidebar.open {
+                    transform: translateX(0);
+                }
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+                *,
+                *::before,
+                *::after {
+                    animation-duration: 0.01ms !important;
+                    transition-duration: 0.01ms !important;
+                }
+            }
+        </style>
+    </head>
+    <body class="h-full font-sans overflow-hidden relative">
+        <!-- Search Modal -->
+        <div
+            id="searchOverlay"
+            class="fixed inset-0 z-50 hidden items-start justify-center pt-[15vh]"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Search sessions"
+        >
+            <div
+                class="absolute inset-0 bg-black/60 animate-overlay"
+                id="searchBackdrop"
+            ></div>
+            <div
+                class="relative w-full max-w-xl mx-4 bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden animate-modal"
+            >
+                <div
+                    class="flex items-center gap-3 px-5 py-4 border-b border-border"
+                >
+                    <i
+                        class="fa-solid fa-magnifying-glass text-muted text-sm"
+                    ></i>
+                    <input
+                        id="searchInput"
+                        type="text"
+                        placeholder="Search sessions, topics, content..."
+                        class="flex-1 bg-transparent text-fg text-sm outline-none placeholder:text-muted"
+                        aria-label="Search query"
+                        autocomplete="off"
+                    />
+                    <kbd
+                        class="hidden sm:inline-flex text-[10px] text-muted border border-border rounded px-1.5 py-0.5 font-mono"
+                        >ESC</kbd
+                    >
+                </div>
+                <div
+                    id="searchResults"
+                    class="max-h-[50vh] overflow-y-auto p-2"
+                    role="listbox"
+                >
+                    <div class="px-3 py-8 text-center text-muted text-sm">
+                        Type to search across sessions...
+                    </div>
+                </div>
+                <div
+                    class="flex items-center gap-4 px-5 py-3 border-t border-border text-[11px] text-muted"
+                >
+                    <span
+                        ><kbd
+                            class="font-mono border border-border rounded px-1 py-0.5"
+                            >↑↓</kbd
+                        >
+                        Navigate</span
+                    >
+                    <span
+                        ><kbd
+                            class="font-mono border border-border rounded px-1 py-0.5"
+                            >Enter</kbd
+                        >
+                        Open</span
+                    >
+                    <span
+                        ><kbd
+                            class="font-mono border border-border rounded px-1 py-0.5"
+                            >Esc</kbd
+                        >
+                        Close</span
+                    >
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Overlay -->
+        <div
+            id="sidebarOverlay"
+            class="fixed inset-0 z-30 bg-black/50 hidden md:hidden"
+            aria-hidden="true"
+        ></div>
+
+        <!-- Main Layout -->
+        <div class="flex h-full relative z-10">
+            <!-- Sidebar -->
+            <aside
+                id="sidebar"
+                class="w-72 min-w-[288px] bg-surface border-r border-border flex flex-col h-full"
+                role="navigation"
+                aria-label="Session list"
+            >
+                <!-- Sidebar Header -->
+                <div class="p-5 pb-4">
+                    <div class="flex items-center justify-between mb-4">
+                        <h1
+                            class="text-base font-bold tracking-tight text-fg flex items-center gap-2"
+                        >
+                            <span
+                                class="w-6 h-6 rounded-md bg-accent flex items-center justify-center text-[11px] text-white font-black"
+                                >S</span
+                            >
+                            Sessions
+                        </h1>
+                        <button
+                            id="mobileClose"
+                            class="md:hidden w-7 h-7 flex items-center justify-center rounded-md text-muted hover:text-fg hover:bg-card transition-colors"
+                            aria-label="Close sidebar"
+                        >
+                            <i class="fa-solid fa-xmark text-sm"></i>
+                        </button>
+                    </div>
+                    <button
+                        id="searchTrigger"
+                        class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg border border-border bg-card hover:border-border-light transition-colors text-left"
+                        aria-label="Open search (Ctrl+K)"
+                    >
+                        <i
+                            class="fa-solid fa-magnifying-glass text-muted text-xs"
+                        ></i>
+                        <span class="text-sm text-muted flex-1"
+                            >Search sessions...</span
+                        >
+                        <kbd
+                            class="text-[10px] text-muted border border-border rounded px-1.5 py-0.5 font-mono"
+                            >⌘K</kbd
+                        >
+                    </button>
+                </div>
+                <!-- Session List -->
+                <div
+                    id="sessionList"
+                    class="flex-1 overflow-y-auto px-3 pb-4 space-y-1"
+                    role="list"
+                >
+                    <!-- Rendered by JS -->
+                </div>
+                <!-- Sidebar Footer -->
+                <div
+                    class="px-5 py-3 border-t border-border text-[11px] text-muted"
+                >
+                    <span id="sessionCount">0</span> sessions &middot;
+                    <span id="solutionCount">0</span> solutions
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main id="mainContent" class="flex-1 overflow-y-auto" role="main">
+                <!-- Rendered by JS -->
+            </main>
+        </div>
+
+        <script src="../lib/data.js" defer></script>
+        <script src="main.js" defer></script>
+    </body>
+</html>
